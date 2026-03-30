@@ -21,9 +21,13 @@ Conventional Commits 형식을 따른다.
 버전 업 & 배포용 zip 생성 시 반드시 아래 순서를 따른다:
 
 1. `manifest.json`의 `version` 필드 업데이트 (semver)
-2. zip 생성 (이전 버전 zip 삭제하지 않음 — 모든 버전 보관): `zip -r releases/lp-player-v{VERSION}.zip manifest.json background.js content-script.js player/ popup/ icons/icon16.png icons/icon48.png icons/icon128.png -x "*.DS_Store"`
-3. `releases/v{VERSION}.md` 릴리즈노트 작성
+2. zip 생성 (이전 버전 보관): `zip -r releases/lp-player-v{VERSION}.zip manifest.json background.js content-script.js player/ popup/ icons/icon16.png icons/icon48.png icons/icon128.png -x "*.DS_Store"`
+3. `releases/v{VERSION}.md` 릴리즈노트 작성 (배포 확정된 내용만)
 4. 커밋 메시지: `release: v{VERSION}` (zip + 릴리즈노트 함께 커밋)
+5. git 태그: `git tag v{VERSION}` — 릴리즈 커밋에 태그 부착
+6. 배포 신청 후 memory의 `project_store_history.md` 이력 업데이트
+
+릴리즈노트와 zip은 반드시 해당 버전에 포함된 변경사항만 반영한다. 이후 작업은 다음 버전에 포함.
 
 ### 릴리즈노트 작성법
 
