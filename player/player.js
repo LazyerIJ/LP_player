@@ -30,6 +30,9 @@
   const TONEARM_REST = -38;    // resting position (off record, swung right)
   const TONEARM_PLAY = 20;     // playing position (pointing at record center)
   const TONEARM_THRESHOLD = -9; // crossing this = toggle play/pause
+  const TONEARM_TRANSITION_MS = 1200; // must match CSS transition
+  const RECORD_LEAD_IN_MS = 180;
+  const PLAYBACK_CONFIRM_TIMEOUT_MS = 3000;
 
   // ===== State =====
   let currentState = {
@@ -42,6 +45,15 @@
   };
   let lastProgress = { currentTime: -1, duration: -1 };
   const ambientColorCache = new Map();
+  const tonearmControl = {
+    isDragging: false,
+    isPointerDown: false,
+    suppressClick: false,
+    activationPhase: 'idle', // idle | spinning-up | moving-to-play | awaiting-playback
+    activationTimeoutId: null,
+    leadInTimeoutId: null,
+    playbackConfirmTimeoutId: null,
+  };
 
   // ===== Formatting helpers =====
   function formatTime(seconds) {
@@ -72,20 +84,28 @@
   }
 
   function updatePlaybackState(isPlaying) {
+    const wasPlaying = currentState.isPlaying;
+
     if (isPlaying === currentState.isPlaying) {
       return;
     }
 
     if (isPlaying) {
       els.record.classList.add('playing');
-      els.tonearm.classList.add('active');
       els.app.classList.remove('idle');
       requestWakeLock();
+      if (!wasPlaying) {
+        tonearmControl.activationPhase = 'idle';
+        clearPendingTonearmActivationTimer();
+        clearPendingTonearmLeadInTimer();
+        clearPendingPlaybackConfirmationTimer();
+      }
     } else {
-      els.record.classList.remove('playing');
-      els.tonearm.classList.remove('active');
       releaseWakeLock();
     }
+
+    syncRecordVisualState();
+    syncTonearmVisualState();
   }
 
   function updateSongInfo(title, artist) {
@@ -126,6 +146,8 @@
     if (songChanged) {
       setProgress(0, state.duration);
       currentState = { ...state, currentTime: 0 };
+      syncRecordVisualState();
+      syncTonearmVisualState();
       return;
     }
 
@@ -134,6 +156,104 @@
     }
 
     currentState = { ...state };
+    syncRecordVisualState();
+    syncTonearmVisualState();
+  }
+
+  function clearPendingTonearmActivationTimer() {
+    if (tonearmControl.activationTimeoutId !== null) {
+      clearTimeout(tonearmControl.activationTimeoutId);
+      tonearmControl.activationTimeoutId = null;
+    }
+  }
+
+  function clearPendingTonearmLeadInTimer() {
+    if (tonearmControl.leadInTimeoutId !== null) {
+      clearTimeout(tonearmControl.leadInTimeoutId);
+      tonearmControl.leadInTimeoutId = null;
+    }
+  }
+
+  function clearPendingPlaybackConfirmationTimer() {
+    if (tonearmControl.playbackConfirmTimeoutId !== null) {
+      clearTimeout(tonearmControl.playbackConfirmTimeoutId);
+      tonearmControl.playbackConfirmTimeoutId = null;
+    }
+  }
+
+  function isTonearmVisuallyActive() {
+    return currentState.isPlaying ||
+      tonearmControl.activationPhase === 'moving-to-play' ||
+      tonearmControl.activationPhase === 'awaiting-playback';
+  }
+
+  function isRecordVisuallyPlaying() {
+    return currentState.isPlaying || tonearmControl.activationPhase !== 'idle';
+  }
+
+  function syncRecordVisualState() {
+    els.record.classList.toggle('playing', isRecordVisuallyPlaying());
+  }
+
+  function syncTonearmVisualState() {
+    if (tonearmControl.isDragging) {
+      return;
+    }
+
+    els.tonearm.classList.toggle('active', isTonearmVisuallyActive());
+  }
+
+  function finalizeTonearmPlaybackStart() {
+    if (tonearmControl.activationPhase !== 'moving-to-play') {
+      return;
+    }
+
+    tonearmControl.activationPhase = 'awaiting-playback';
+    clearPendingTonearmActivationTimer();
+    sendPlaybackCommand('TOGGLE_PLAYBACK');
+    clearPendingPlaybackConfirmationTimer();
+    tonearmControl.playbackConfirmTimeoutId = setTimeout(() => {
+      if (tonearmControl.activationPhase === 'awaiting-playback' && !currentState.isPlaying) {
+        tonearmControl.activationPhase = 'idle';
+        syncRecordVisualState();
+        syncTonearmVisualState();
+      }
+    }, PLAYBACK_CONFIRM_TIMEOUT_MS);
+    syncRecordVisualState();
+    syncTonearmVisualState();
+  }
+
+  function startTonearmPlaybackMotion() {
+    if (tonearmControl.activationPhase !== 'spinning-up') {
+      return;
+    }
+
+    tonearmControl.activationPhase = 'moving-to-play';
+    clearPendingTonearmLeadInTimer();
+    syncRecordVisualState();
+    syncTonearmVisualState();
+
+    clearPendingTonearmActivationTimer();
+    tonearmControl.activationTimeoutId = setTimeout(() => {
+      finalizeTonearmPlaybackStart();
+    }, TONEARM_TRANSITION_MS + 80);
+  }
+
+  function beginTonearmPlaybackStart() {
+    if (currentState.isPlaying || tonearmControl.activationPhase !== 'idle') {
+      return;
+    }
+
+    tonearmControl.activationPhase = 'spinning-up';
+    syncRecordVisualState();
+    syncTonearmVisualState();
+
+    clearPendingTonearmLeadInTimer();
+    tonearmControl.leadInTimeoutId = setTimeout(() => {
+      startTonearmPlaybackMotion();
+    }, RECORD_LEAD_IN_MS);
+
+    clearPendingTonearmActivationTimer();
   }
 
   // ===== Ambient background color from album art =====
@@ -292,9 +412,6 @@
   }
 
   // ===== Tonearm Drag Control =====
-  let isDragging = false;
-  let isPointerDown = false;
-  let suppressTonearmClick = false;
   let dragStartY = 0;
   let dragStartAngle = 0;
   const DRAG_THRESHOLD_PX = 6;
@@ -309,7 +426,7 @@
       const b = parseFloat(parts[1]);
       return Math.round(Math.atan2(b, a) * (180 / Math.PI));
     }
-    return currentState.isPlaying ? TONEARM_PLAY : TONEARM_REST;
+    return isTonearmVisuallyActive() ? TONEARM_PLAY : TONEARM_REST;
   }
 
   function setTonearmAngle(angle) {
@@ -320,25 +437,30 @@
 
   function onDragStart(e) {
     e.preventDefault();
-    isPointerDown = true;
-    isDragging = false;
+    tonearmControl.isPointerDown = true;
+    tonearmControl.isDragging = false;
+    tonearmControl.activationPhase = 'idle';
+    clearPendingTonearmActivationTimer();
+    clearPendingTonearmLeadInTimer();
+    clearPendingPlaybackConfirmationTimer();
+    syncRecordVisualState();
     dragStartY = e.clientY || e.touches?.[0]?.clientY || 0;
     dragStartAngle = getTonearmAngle();
   }
 
   function onDragMove(e) {
-    if (!isPointerDown) return;
+    if (!tonearmControl.isPointerDown) return;
     e.preventDefault();
     const clientY = e.clientY || e.touches?.[0]?.clientY || 0;
     const deltaY = clientY - dragStartY;
 
-    if (!isDragging && Math.abs(deltaY) < DRAG_THRESHOLD_PX) {
+    if (!tonearmControl.isDragging && Math.abs(deltaY) < DRAG_THRESHOLD_PX) {
       return;
     }
 
-    if (!isDragging) {
-      isDragging = true;
-      suppressTonearmClick = true;
+    if (!tonearmControl.isDragging) {
+      tonearmControl.isDragging = true;
+      tonearmControl.suppressClick = true;
       els.tonearm.classList.add('dragging');
       els.tonearm.classList.remove('active');
     }
@@ -349,32 +471,30 @@
   }
 
   function onDragEnd() {
-    if (!isPointerDown) return;
-    isPointerDown = false;
+    if (!tonearmControl.isPointerDown) return;
+    tonearmControl.isPointerDown = false;
 
-    if (!isDragging) {
+    if (!tonearmControl.isDragging) {
       return;
     }
 
-    isDragging = false;
+    tonearmControl.isDragging = false;
     els.tonearm.classList.remove('dragging');
 
     const finalAngle = getTonearmAngle();
     els.tonearm.style.transform = '';
 
-    if (currentState.isPlaying) {
-      els.tonearm.classList.add('active');
-    }
-
     if (finalAngle > TONEARM_THRESHOLD) {
       if (!currentState.isPlaying) {
-        sendPlaybackCommand('TOGGLE_PLAYBACK');
+        beginTonearmPlaybackStart();
       }
     } else {
       if (currentState.isPlaying) {
         sendPlaybackCommand('TOGGLE_PLAYBACK');
       }
     }
+
+    syncTonearmVisualState();
   }
 
   els.tonearm.addEventListener('mousedown', onDragStart);
@@ -385,12 +505,30 @@
   document.addEventListener('touchmove', onDragMove, { passive: false });
   document.addEventListener('touchend', onDragEnd);
 
-  els.tonearm.addEventListener('click', (e) => {
-    if (isDragging || suppressTonearmClick) {
-      suppressTonearmClick = false;
+  els.tonearm.addEventListener('transitionend', (e) => {
+    if (e.propertyName !== 'transform') {
       return;
     }
-    sendPlaybackCommand('TOGGLE_PLAYBACK');
+
+    finalizeTonearmPlaybackStart();
+  });
+
+  els.tonearm.addEventListener('click', (e) => {
+    if (tonearmControl.isDragging || tonearmControl.suppressClick) {
+      tonearmControl.suppressClick = false;
+      return;
+    }
+
+    if (tonearmControl.activationPhase !== 'idle') {
+      return;
+    }
+
+    if (currentState.isPlaying) {
+      sendPlaybackCommand('TOGGLE_PLAYBACK');
+      return;
+    }
+
+    beginTonearmPlaybackStart();
   });
 
   function sendPlaybackCommand(command) {
@@ -408,7 +546,7 @@
     port = chrome.runtime.connect({ name: 'lp-player' });
 
     port.onMessage.addListener((msg) => {
-      if (msg.type === 'PLAYBACK_STATE' && !isDragging) {
+      if (msg.type === 'PLAYBACK_STATE' && !tonearmControl.isDragging) {
         updateUI(msg.payload);
       }
     });
