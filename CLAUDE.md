@@ -112,6 +112,8 @@ How to use:
 Features:
 - Vinyl record animation with album art
 - Draggable tonearm to play/pause
+- Previous/Next track with record swap animation
+- Tonearm tracks playback progress across the record
 - Tracklist panel to browse and switch songs
 - 4 themes: Dark, Warm, Cafe, Minimal
 - Fullscreen support

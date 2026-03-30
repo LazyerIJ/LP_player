@@ -10,6 +10,8 @@ A Chrome extension that transforms YouTube Music into a beautiful vinyl record p
 
 - Vinyl record animation with album art on the label
 - Draggable tonearm to play/pause
+- Previous/Next track with record swap animation
+- Tonearm tracks playback progress across the record
 - Tracklist panel to browse and switch songs
 - 4 themes: Dark, Warm, Cafe, Minimal
 - Fullscreen support (button or double-click)
@@ -35,6 +37,7 @@ A Chrome extension that transforms YouTube Music into a beautiful vinyl record p
 | Action | How |
 |---|---|
 | Play / Pause | Click or drag the tonearm |
+| Previous / Next track | Click ‹ › buttons on turntable sides |
 | Browse tracks | Click ☰ (bottom left) |
 | Switch song | Click a track in the tracklist |
 | Change theme | Click ◐ (bottom right) |
