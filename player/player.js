@@ -74,22 +74,31 @@
       els.app.classList.add('idle');
     }
 
+    // Detect song change and reset progress
+    const songChanged = state.title && state.title !== currentState.title;
+    if (songChanged) {
+      els.progressFill.style.width = '0%';
+      els.timeCurrent.textContent = '0:00';
+      els.timeDuration.textContent = '0:00';
+    }
+
     // Album art
     if (state.albumArtUrl && state.albumArtUrl !== els.albumArt.src) {
       els.albumArt.src = state.albumArtUrl;
       updateAmbientColor(state.albumArtUrl);
     }
 
-    // Progress
-    if (state.duration > 0) {
+    // Progress — skip stale data during song transition
+    if (state.duration > 0 && state.currentTime <= state.duration) {
       const pct = (state.currentTime / state.duration) * 100;
       els.progressFill.style.width = `${pct}%`;
-    } else {
+      els.timeCurrent.textContent = formatTime(state.currentTime);
+      els.timeDuration.textContent = formatTime(state.duration);
+    } else if (!songChanged) {
       els.progressFill.style.width = '0%';
+      els.timeCurrent.textContent = formatTime(state.currentTime);
+      els.timeDuration.textContent = formatTime(state.duration);
     }
-
-    els.timeCurrent.textContent = formatTime(state.currentTime);
-    els.timeDuration.textContent = formatTime(state.duration);
 
     currentState = state;
   }
