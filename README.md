@@ -17,7 +17,7 @@ A Chrome extension that transforms YouTube Music into a beautiful vinyl record p
 
 ### Chrome Web Store
 
-*(Coming soon)*
+[Install from Chrome Web Store](https://chromewebstore.google.com/detail/lp-player-for-youtube-mus/ldogpimidicimdbhdpedmibkbgegcloh)
 
 ### Manual Install (Developer Mode)
 
