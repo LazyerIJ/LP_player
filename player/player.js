@@ -124,10 +124,29 @@
     }
   }
 
+  function hasTrackChanged(nextState) {
+    const metadataChanged =
+      Boolean(nextState.title && nextState.title !== currentState.title) ||
+      Boolean(nextState.artist && nextState.artist !== currentState.artist) ||
+      Boolean(nextState.albumArtUrl && nextState.albumArtUrl !== currentState.albumArtUrl);
+
+    const durationChanged =
+      nextState.duration > 0 &&
+      currentState.duration > 0 &&
+      Math.abs(nextState.duration - currentState.duration) > 1;
+
+    const restartedNearBeginning =
+      currentState.currentTime > 15 &&
+      nextState.currentTime < 3 &&
+      nextState.currentTime < currentState.currentTime;
+
+    return metadataChanged || durationChanged || restartedNearBeginning;
+  }
+
   // ===== UI Update =====
   function updateUI(state) {
     // Detect song change and reset progress
-    const songChanged = state.title && state.title !== currentState.title;
+    const songChanged = hasTrackChanged(state);
 
     updatePlaybackState(state.isPlaying);
     updateSongInfo(state.title, state.artist);
@@ -144,8 +163,8 @@
     }
 
     if (songChanged) {
-      setProgress(0, state.duration);
-      currentState = { ...state, currentTime: 0 };
+      setProgress(state.currentTime, state.duration);
+      currentState = { ...state };
       syncRecordVisualState();
       syncTonearmVisualState();
       return;

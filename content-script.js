@@ -22,6 +22,91 @@
   let lastState = {};
   let pollInterval = null;
 
+  function extractTimes(text) {
+    if (!text) return [];
+
+    const matches = text.match(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g);
+    return matches || [];
+  }
+
+  function parseTimeToSeconds(timeText) {
+    if (!timeText) return NaN;
+
+    const parts = timeText
+      .trim()
+      .split(':')
+      .map((part) => Number.parseInt(part, 10));
+
+    if (parts.some((part) => Number.isNaN(part))) {
+      return NaN;
+    }
+
+    if (parts.length === 2) {
+      return parts[0] * 60 + parts[1];
+    }
+
+    if (parts.length === 3) {
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+
+    return NaN;
+  }
+
+  function parseTimeRangeText(rawText) {
+    const matches = extractTimes(rawText);
+    if (matches.length < 2) {
+      return { currentTime: NaN, duration: NaN };
+    }
+
+    return {
+      currentTime: parseTimeToSeconds(matches[0]),
+      duration: parseTimeToSeconds(matches[1]),
+    };
+  }
+
+  function getTimeInfoState() {
+    const timeInfoEl = document.querySelector(SELECTORS.timeInfo);
+    const rawText = timeInfoEl?.textContent?.replace(/\s+/g, ' ').trim() || '';
+    return parseTimeRangeText(rawText);
+  }
+
+  function getProgressBarState() {
+    const progressBar = document.querySelector(SELECTORS.progressBar);
+    if (!progressBar) {
+      return { currentTime: NaN, duration: NaN };
+    }
+
+    const textCandidates = [
+      progressBar.getAttribute('aria-valuetext'),
+      progressBar.getAttribute('aria-label'),
+      progressBar.textContent,
+    ];
+
+    for (const candidate of textCandidates) {
+      const parsed = parseTimeRangeText(candidate?.replace(/\s+/g, ' ').trim() || '');
+      if (Number.isFinite(parsed.currentTime) && Number.isFinite(parsed.duration)) {
+        return parsed;
+      }
+    }
+
+    const now = Number.parseFloat(
+      progressBar.getAttribute('aria-valuenow') ??
+      progressBar.getAttribute('value') ??
+      ''
+    );
+    const max = Number.parseFloat(
+      progressBar.getAttribute('aria-valuemax') ??
+      progressBar.getAttribute('max') ??
+      ''
+    );
+
+    if (Number.isFinite(now) && Number.isFinite(max) && max > 100 && now >= 0 && now <= max) {
+      return { currentTime: now, duration: max };
+    }
+
+    return { currentTime: NaN, duration: NaN };
+  }
+
   function getQueueTracks() {
     const items = document.querySelectorAll(SELECTORS.queueItems);
     const tracks = [];
@@ -68,13 +153,30 @@
       albumArtUrl = albumArtEl.src.replace(/=w\d+-h\d+/, '=w544-h544');
     }
 
-    // Get progress info
-    let currentTime = 0;
-    let duration = 0;
-    if (video) {
-      currentTime = video.currentTime || 0;
-      duration = video.duration || 0;
+    // Get progress info from the visible player UI first.
+    let { currentTime, duration } = getTimeInfoState();
+
+    if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) {
+      const progressBarState = getProgressBarState();
+      if (Number.isFinite(progressBarState.currentTime)) {
+        currentTime = progressBarState.currentTime;
+      }
+      if (Number.isFinite(progressBarState.duration) && progressBarState.duration > 0) {
+        duration = progressBarState.duration;
+      }
     }
+
+    if (video) {
+      if (!Number.isFinite(currentTime)) {
+        currentTime = video.currentTime || 0;
+      }
+      if (!Number.isFinite(duration) || duration <= 0) {
+        duration = video.duration || 0;
+      }
+    }
+
+    currentTime = Number.isFinite(currentTime) ? currentTime : 0;
+    duration = Number.isFinite(duration) ? duration : 0;
 
     return {
       isPlaying,

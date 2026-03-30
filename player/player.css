@@ -50,9 +50,16 @@ html, body {
 
 /* ===== Turntable ===== */
 #turntable {
+  --turntable-size: min(70vmin, 500px);
+  --tonearm-width: clamp(4px, calc(var(--turntable-size) * 0.012), 6px);
+  --tonearm-height: calc(var(--turntable-size) * 0.28);
+  --tonearm-head-size: clamp(10px, calc(var(--turntable-size) * 0.028), 14px);
+  --tonearm-pivot-size: clamp(14px, calc(var(--turntable-size) * 0.036), 18px);
+  --tonearm-hit-area-x: clamp(10px, calc(var(--turntable-size) * 0.03), 15px);
+  --tonearm-hit-area-y: clamp(8px, calc(var(--turntable-size) * 0.02), 10px);
   position: relative;
-  width: min(70vmin, 500px);
-  height: min(70vmin, 500px);
+  width: var(--turntable-size);
+  height: var(--turntable-size);
 }
 
 /* ===== Record ===== */
@@ -203,11 +210,11 @@ html, body {
 }
 
 #tonearm {
-  width: 6px;
-  height: 140px;
+  width: var(--tonearm-width);
+  height: var(--tonearm-height);
   background: linear-gradient(to bottom, var(--tonearm-color), color-mix(in srgb, var(--tonearm-color) 70%, black));
-  border-radius: 3px;
-  transform-origin: 3px 0;
+  border-radius: calc(var(--tonearm-width) / 2);
+  transform-origin: calc(var(--tonearm-width) / 2) 0;
   transform: rotate(-38deg);
   transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
@@ -232,10 +239,10 @@ html, body {
 
 #tonearm-head {
   position: absolute;
-  bottom: -4px;
-  left: -4px;
-  width: 14px;
-  height: 14px;
+  bottom: calc(var(--tonearm-head-size) * -0.29);
+  left: calc((var(--tonearm-head-size) - var(--tonearm-width)) / -2);
+  width: var(--tonearm-head-size);
+  height: var(--tonearm-head-size);
   background: var(--tonearm-color);
   border-radius: 2px;
   box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.4);
@@ -245,10 +252,10 @@ html, body {
 #tonearm::before {
   content: '';
   position: absolute;
-  top: -8px;
-  left: -6px;
-  width: 18px;
-  height: 18px;
+  top: calc(var(--tonearm-pivot-size) * -0.44);
+  left: calc((var(--tonearm-pivot-size) - var(--tonearm-width)) / -2);
+  width: var(--tonearm-pivot-size);
+  height: var(--tonearm-pivot-size);
   border-radius: 50%;
   background: var(--tonearm-color);
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
@@ -258,10 +265,10 @@ html, body {
 #tonearm::after {
   content: '';
   position: absolute;
-  top: -10px;
-  left: -15px;
-  right: -15px;
-  bottom: -10px;
+  top: calc(var(--tonearm-hit-area-y) * -1);
+  left: calc(var(--tonearm-hit-area-x) * -1);
+  right: calc(var(--tonearm-hit-area-x) * -1);
+  bottom: calc(var(--tonearm-hit-area-y) * -1);
   pointer-events: auto;
 }
 
