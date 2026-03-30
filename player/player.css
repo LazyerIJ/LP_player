@@ -52,7 +52,7 @@ html, body {
 #turntable {
   --turntable-size: min(70vmin, 500px);
   --tonearm-width: clamp(4px, calc(var(--turntable-size) * 0.012), 6px);
-  --tonearm-height: calc(var(--turntable-size) * 0.28);
+  --tonearm-height: calc(var(--turntable-size) * 0.42);
   --tonearm-head-size: clamp(10px, calc(var(--turntable-size) * 0.028), 14px);
   --tonearm-pivot-size: clamp(14px, calc(var(--turntable-size) * 0.036), 18px);
   --tonearm-hit-area-x: clamp(10px, calc(var(--turntable-size) * 0.03), 15px);
@@ -203,8 +203,8 @@ html, body {
 /* ===== Tonearm ===== */
 #tonearm-container {
   position: absolute;
-  top: -3%;
-  right: 8%;
+  top: 0;
+  right: 9%;
   z-index: 10;
   pointer-events: none;
 }
@@ -227,14 +227,15 @@ html, body {
   cursor: grabbing;
 }
 
-#tonearm.active {
-  transform: rotate(20deg);
-}
-
 /* Lift-up animation: tonearm rises slightly before moving */
 #tonearm.lifting {
   transition: transform 0.4s ease-out;
   transform: rotate(5deg);
+}
+
+#tonearm.tracking {
+  transition-duration: 0.95s;
+  transition-timing-function: linear;
 }
 
 #tonearm-head {

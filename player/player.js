@@ -28,7 +28,8 @@
 
   // Tonearm angle constants (must match CSS)
   const TONEARM_REST = -38;    // resting position (off record, swung right)
-  const TONEARM_PLAY = 20;     // playing position (pointing at record center)
+  const TONEARM_TRACK_START = 2;   // lead-in groove position near the record edge
+  const TONEARM_TRACK_END = 26;    // run-out groove position, still outside the label art
   const TONEARM_THRESHOLD = -9; // crossing this = toggle play/pause
   const TONEARM_TRANSITION_MS = 1200; // must match CSS transition
   const RECORD_LEAD_IN_MS = 180;
@@ -200,14 +201,35 @@
     }
   }
 
-  function isTonearmVisuallyActive() {
-    return currentState.isPlaying ||
-      tonearmControl.activationPhase === 'moving-to-play' ||
-      tonearmControl.activationPhase === 'awaiting-playback';
-  }
-
   function isRecordVisuallyPlaying() {
     return currentState.isPlaying || tonearmControl.activationPhase !== 'idle';
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function getTonearmProgressRatio() {
+    if (!Number.isFinite(currentState.duration) || currentState.duration <= 0) {
+      return 0;
+    }
+
+    return clamp(currentState.currentTime / currentState.duration, 0, 1);
+  }
+
+  function getTonearmTrackingAngle() {
+    const progress = getTonearmProgressRatio();
+    return TONEARM_TRACK_START + (TONEARM_TRACK_END - TONEARM_TRACK_START) * progress;
+  }
+
+  function getTonearmTargetAngle() {
+    if (currentState.isPlaying ||
+        tonearmControl.activationPhase === 'moving-to-play' ||
+        tonearmControl.activationPhase === 'awaiting-playback') {
+      return getTonearmTrackingAngle();
+    }
+
+    return TONEARM_REST;
   }
 
   function syncRecordVisualState() {
@@ -219,7 +241,13 @@
       return;
     }
 
-    els.tonearm.classList.toggle('active', isTonearmVisuallyActive());
+    const isTracking =
+      currentState.isPlaying &&
+      tonearmControl.activationPhase === 'idle' &&
+      !tonearmControl.isPointerDown;
+
+    els.tonearm.classList.toggle('tracking', isTracking);
+    setTonearmAngle(getTonearmTargetAngle());
   }
 
   function finalizeTonearmPlaybackStart() {
@@ -445,11 +473,11 @@
       const b = parseFloat(parts[1]);
       return Math.round(Math.atan2(b, a) * (180 / Math.PI));
     }
-    return isTonearmVisuallyActive() ? TONEARM_PLAY : TONEARM_REST;
+    return getTonearmTargetAngle();
   }
 
   function setTonearmAngle(angle) {
-    angle = Math.max(TONEARM_REST, Math.min(TONEARM_PLAY, angle));
+    angle = clamp(angle, TONEARM_REST, TONEARM_TRACK_END);
     els.tonearm.style.transform = `rotate(${angle}deg)`;
     return angle;
   }
