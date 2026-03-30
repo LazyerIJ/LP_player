@@ -21,8 +21,32 @@ Conventional Commits 형식을 따른다.
 버전 업 & 배포용 zip 생성 시 반드시 아래 순서를 따른다:
 
 1. `manifest.json`의 `version` 필드 업데이트 (semver)
-2. zip 생성: `zip -r lp-player-v{VERSION}.zip manifest.json background.js content-script.js player/ popup/ icons/icon16.png icons/icon48.png icons/icon128.png -x "*.DS_Store"`
-3. 커밋 메시지: `release: v{VERSION}`
+2. 이전 zip 삭제 후 새 zip 생성: `zip -r lp-player-v{VERSION}.zip manifest.json background.js content-script.js player/ popup/ icons/icon16.png icons/icon48.png icons/icon128.png -x "*.DS_Store"`
+3. `releases/v{VERSION}.md` 릴리즈노트 작성
+4. 커밋 메시지: `release: v{VERSION}`
+
+### 릴리즈노트 작성법
+
+`releases/v{VERSION}.md` 파일로 작성한다. 형식:
+
+```markdown
+# v{VERSION}
+
+**Released: {YYYY-MM-DD}**
+
+## New Features
+- 새 기능 목록 (feat 커밋 기반)
+
+## Bug Fixes
+- 버그 수정 목록 (fix 커밋 기반)
+
+## Improvements
+- 개선사항 목록 (refactor, 성능, UI 개선 등)
+```
+
+- 이전 릴리즈 이후의 커밋을 기반으로 작성
+- 섹션에 해당 내용이 없으면 섹션 자체를 생략
+- 사용자 관점에서 간결하게 작성 (코드 내부 변경은 생략)
 
 ### 버전 규칙 (semver)
 - 버그 수정: patch (1.0.0 → 1.0.1)
@@ -44,6 +68,7 @@ popup/                 — 확장프로그램 팝업
   popup.html
   popup.js
 icons/                 — 확장프로그램 아이콘
+releases/              — 릴리즈노트 (버전별)
 ```
 
 ## Ko-fi
