@@ -62,24 +62,38 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
+#record-shadow,
 #record {
   width: 90%;
   height: 90%;
   border-radius: 50%;
-  background: var(--record-color);
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+}
+
+#record-shadow {
+  background: var(--record-color);
   box-shadow:
     0 0 0 3px rgba(0, 0, 0, 0.3),
     var(--label-shadow),
     inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+#record {
+  position: absolute;
+  inset: 5%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   /* Animation controlled by JS via class */
   animation: spin 3s linear infinite;
   animation-play-state: paused;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: layout paint style;
 }
 
 #record.playing {
@@ -87,12 +101,24 @@ html, body {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from { transform: translate3d(0, 0, 0) rotate(0deg); }
+  to { transform: translate3d(0, 0, 0) rotate(360deg); }
 }
 
 /* Vinyl shine effect */
-#record::before {
+#record-surface {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--record-color);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#record-surface::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -142,6 +168,7 @@ html, body {
   object-fit: contain;
   display: block;
   transform: scale(1.35);
+  backface-visibility: hidden;
 }
 
 #album-art[src=""],
@@ -282,10 +309,13 @@ html, body {
 
 #progress-fill {
   height: 100%;
-  width: 0%;
+  width: 100%;
   background: var(--progress-fill);
   border-radius: 2px;
   transition: background 0.6s ease;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
 }
 
 /* ===== Fullscreen toggle ===== */

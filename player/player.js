@@ -40,6 +40,8 @@
     currentTime: 0,
     duration: 0,
   };
+  let lastProgress = { currentTime: -1, duration: -1 };
+  const ambientColorCache = new Map();
 
   // ===== Formatting helpers =====
   function formatTime(seconds) {
@@ -50,9 +52,31 @@
   }
 
   // ===== UI Update =====
-  function updateUI(state) {
-    // Record spin
-    if (state.isPlaying) {
+  function setProgress(currentTime, duration) {
+    if (currentTime === lastProgress.currentTime && duration === lastProgress.duration) {
+      return;
+    }
+
+    if (duration > 0 && currentTime <= duration) {
+      const pct = currentTime / duration;
+      els.progressFill.style.transform = `scaleX(${pct})`;
+      els.timeCurrent.textContent = formatTime(currentTime);
+      els.timeDuration.textContent = formatTime(duration);
+    } else {
+      els.progressFill.style.transform = 'scaleX(0)';
+      els.timeCurrent.textContent = formatTime(currentTime);
+      els.timeDuration.textContent = formatTime(duration);
+    }
+
+    lastProgress = { currentTime, duration };
+  }
+
+  function updatePlaybackState(isPlaying) {
+    if (isPlaying === currentState.isPlaying) {
+      return;
+    }
+
+    if (isPlaying) {
       els.record.classList.add('playing');
       els.tonearm.classList.add('active');
       els.app.classList.remove('idle');
@@ -62,49 +86,58 @@
       els.tonearm.classList.remove('active');
       releaseWakeLock();
     }
+  }
 
-    // Song info
-    if (state.title) {
-      els.songTitle.textContent = state.title;
-      els.songArtist.textContent = state.artist;
-      els.app.classList.remove('idle');
-    } else {
-      els.songTitle.textContent = '';
-      els.songArtist.textContent = '';
-      els.app.classList.add('idle');
+  function updateSongInfo(title, artist) {
+    if (title !== currentState.title) {
+      els.songTitle.textContent = title || '';
     }
 
+    if (artist !== currentState.artist) {
+      els.songArtist.textContent = artist || '';
+    }
+
+    if (title) {
+      els.app.classList.remove('idle');
+    } else {
+      els.app.classList.add('idle');
+    }
+  }
+
+  // ===== UI Update =====
+  function updateUI(state) {
     // Detect song change and reset progress
     const songChanged = state.title && state.title !== currentState.title;
+
+    updatePlaybackState(state.isPlaying);
+    updateSongInfo(state.title, state.artist);
+
     if (songChanged) {
-      els.progressFill.style.width = '0%';
-      els.timeCurrent.textContent = '0:00';
-      els.timeDuration.textContent = '0:00';
+      lastProgress = { currentTime: -1, duration: -1 };
+      setProgress(0, 0);
     }
 
     // Album art
-    if (state.albumArtUrl && state.albumArtUrl !== els.albumArt.src) {
+    if (state.albumArtUrl && state.albumArtUrl !== currentState.albumArtUrl) {
       els.albumArt.src = state.albumArtUrl;
       updateAmbientColor(state.albumArtUrl);
     }
 
-    // Progress — skip stale data during song transition
-    if (state.duration > 0 && state.currentTime <= state.duration) {
-      const pct = (state.currentTime / state.duration) * 100;
-      els.progressFill.style.width = `${pct}%`;
-      els.timeCurrent.textContent = formatTime(state.currentTime);
-      els.timeDuration.textContent = formatTime(state.duration);
-    } else if (!songChanged) {
-      els.progressFill.style.width = '0%';
-      els.timeCurrent.textContent = formatTime(state.currentTime);
-      els.timeDuration.textContent = formatTime(state.duration);
+    if (!songChanged || state.currentTime === 0 || state.duration > 0) {
+      setProgress(state.currentTime, state.duration);
     }
 
-    currentState = state;
+    currentState = { ...state };
   }
 
   // ===== Ambient background color from album art =====
   function updateAmbientColor(imageUrl) {
+    const cached = ambientColorCache.get(imageUrl);
+    if (cached) {
+      els.bgLayer.style.background = cached;
+      return;
+    }
+
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -115,7 +148,9 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, 1, 1);
         const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-        els.bgLayer.style.background = `radial-gradient(circle at 50% 50%, rgb(${r},${g},${b}), transparent 70%)`;
+        const gradient = `radial-gradient(circle at 50% 50%, rgb(${r},${g},${b}), transparent 70%)`;
+        ambientColorCache.set(imageUrl, gradient);
+        els.bgLayer.style.background = gradient;
       } catch {
         // CORS or other issue — keep default gradient
       }
@@ -158,6 +193,7 @@
   // ===== Tracklist =====
   let tracklistOpen = false;
   let queuePollInterval = null;
+  let lastQueueSignature = '';
 
   els.tracklistToggle.addEventListener('click', () => {
     tracklistOpen = !tracklistOpen;
@@ -194,6 +230,20 @@
 
   function renderTracklist(tracks) {
     const container = els.tracklistItems;
+    const signature = JSON.stringify(tracks.map((track) => [
+      track.index,
+      track.title,
+      track.artist,
+      track.duration,
+      track.isPlaying,
+    ]));
+
+    if (signature === lastQueueSignature) {
+      return;
+    }
+
+    lastQueueSignature = signature;
+
     // Preserve scroll position
     const scrollTop = container.scrollTop;
 
@@ -237,8 +287,11 @@
 
   // ===== Tonearm Drag Control =====
   let isDragging = false;
+  let isPointerDown = false;
+  let suppressTonearmClick = false;
   let dragStartY = 0;
   let dragStartAngle = 0;
+  const DRAG_THRESHOLD_PX = 6;
 
   function getTonearmAngle() {
     const transform = getComputedStyle(els.tonearm).transform;
@@ -261,25 +314,42 @@
 
   function onDragStart(e) {
     e.preventDefault();
-    isDragging = true;
+    isPointerDown = true;
+    isDragging = false;
     dragStartY = e.clientY || e.touches?.[0]?.clientY || 0;
     dragStartAngle = getTonearmAngle();
-    els.tonearm.classList.add('dragging');
-    els.tonearm.classList.remove('active');
   }
 
   function onDragMove(e) {
-    if (!isDragging) return;
+    if (!isPointerDown) return;
     e.preventDefault();
     const clientY = e.clientY || e.touches?.[0]?.clientY || 0;
     const deltaY = clientY - dragStartY;
+
+    if (!isDragging && Math.abs(deltaY) < DRAG_THRESHOLD_PX) {
+      return;
+    }
+
+    if (!isDragging) {
+      isDragging = true;
+      suppressTonearmClick = true;
+      els.tonearm.classList.add('dragging');
+      els.tonearm.classList.remove('active');
+    }
+
     const sensitivity = 0.15;
     const newAngle = dragStartAngle + deltaY * sensitivity;
     setTonearmAngle(newAngle);
   }
 
   function onDragEnd() {
-    if (!isDragging) return;
+    if (!isPointerDown) return;
+    isPointerDown = false;
+
+    if (!isDragging) {
+      return;
+    }
+
     isDragging = false;
     els.tonearm.classList.remove('dragging');
 
@@ -310,7 +380,10 @@
   document.addEventListener('touchend', onDragEnd);
 
   els.tonearm.addEventListener('click', (e) => {
-    if (isDragging) return;
+    if (isDragging || suppressTonearmClick) {
+      suppressTonearmClick = false;
+      return;
+    }
     sendPlaybackCommand('TOGGLE_PLAYBACK');
   });
 
