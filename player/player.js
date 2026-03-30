@@ -123,7 +123,13 @@
       updateAmbientColor(state.albumArtUrl);
     }
 
-    if (!songChanged || state.currentTime === 0 || state.duration > 0) {
+    if (songChanged) {
+      setProgress(0, state.duration);
+      currentState = { ...state, currentTime: 0 };
+      return;
+    }
+
+    if (state.currentTime === 0 || state.duration > 0) {
       setProgress(state.currentTime, state.duration);
     }
 
