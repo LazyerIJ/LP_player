@@ -165,7 +165,7 @@
 
     // Album art change
     if (state.albumArtUrl && state.albumArtUrl !== currentState.albumArtUrl) {
-      if (songChanged && !isSwapping) {
+      if (songChanged && !isSwapping && currentState.albumArtUrl) {
         // Use pending direction from button click, or default to 'next' for natural transitions
         const direction = pendingSwapDirection || 'next';
         pendingSwapDirection = null;

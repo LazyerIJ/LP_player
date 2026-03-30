@@ -64,6 +64,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
+// Reset state when YouTube Music tab is closed or navigated away
+chrome.tabs.onRemoved.addListener((tabId) => {
+  chrome.tabs.query({ url: '*://music.youtube.com/*' }, (tabs) => {
+    if (tabs.length === 0) {
+      latestState = {
+        isPlaying: false,
+        title: '',
+        artist: '',
+        albumArtUrl: '',
+        currentTime: 0,
+        duration: 0,
+      };
+      for (const port of playerPorts) {
+        try {
+          port.postMessage({ type: 'PLAYBACK_STATE', payload: latestState });
+        } catch {
+          playerPorts.delete(port);
+        }
+      }
+    }
+  });
+});
+
 // Long-lived connections from player pages
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name === 'lp-player') {
