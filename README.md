@@ -2,7 +2,9 @@
 
 A Chrome extension that transforms YouTube Music into a beautiful vinyl record player visualization.
 
-![LP Player Screenshot](screenshots/screenshot_1.png)
+![LP Player Screenshot 1](screenshots/screenshot_1.png)
+![LP Player Screenshot 2](screenshots/screenshot_2.png)
+![LP Player Screenshot 3](screenshots/screenshot_3.png)
 
 ## Features
 
