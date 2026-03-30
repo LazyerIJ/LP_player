@@ -1,0 +1,390 @@
+/*
+ * LP Player Styles
+ * Layout and animation for the vinyl record player visualization.
+ * All colors come from theme CSS variables — do not hardcode colors here.
+ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+#lp-app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  position: relative;
+  transition: background 0.6s ease, color 0.6s ease;
+}
+
+/* ===== Background ambient glow ===== */
+#bg-layer {
+  position: absolute;
+  inset: 0;
+  opacity: var(--ambient-opacity);
+  background: radial-gradient(circle at 50% 50%, var(--accent), transparent 70%);
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+
+/* ===== Player container ===== */
+#player-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  z-index: 1;
+}
+
+/* ===== Turntable ===== */
+#turntable {
+  position: relative;
+  width: min(70vmin, 500px);
+  height: min(70vmin, 500px);
+}
+
+/* ===== Record ===== */
+#record-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#record {
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  background: var(--record-color);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 0 0 3px rgba(0, 0, 0, 0.3),
+    var(--label-shadow),
+    inset 0 0 60px rgba(0, 0, 0, 0.5);
+  /* Animation controlled by JS via class */
+  animation: spin 3s linear infinite;
+  animation-play-state: paused;
+}
+
+#record.playing {
+  animation-play-state: running;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Vinyl shine effect */
+#record::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--record-shine) 30deg,
+    transparent 60deg,
+    var(--record-shine) 150deg,
+    transparent 180deg,
+    var(--record-shine) 270deg,
+    transparent 300deg
+  );
+  pointer-events: none;
+}
+
+/* ===== Grooves ===== */
+.groove {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--groove-color);
+  pointer-events: none;
+}
+
+.groove-1 { width: 95%; height: 95%; top: 2.5%; left: 2.5%; }
+.groove-2 { width: 82%; height: 82%; top: 9%; left: 9%; }
+.groove-3 { width: 70%; height: 70%; top: 15%; left: 15%; }
+.groove-4 { width: 58%; height: 58%; top: 21%; left: 21%; }
+.groove-5 { width: 48%; height: 48%; top: 26%; left: 26%; }
+
+/* ===== Record label (center with album art) ===== */
+#record-label {
+  width: 38%;
+  height: 38%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+  background: #222;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+#album-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#album-art[src=""],
+#album-art:not([src]) {
+  display: none;
+}
+
+/* Default label when no album art */
+#record-label {
+  background: radial-gradient(circle, #444 0%, #222 100%);
+}
+
+#center-hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8%;
+  height: 8%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--record-color);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.8);
+}
+
+/* ===== Tonearm ===== */
+#tonearm-container {
+  position: absolute;
+  top: -3%;
+  right: 8%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#tonearm {
+  width: 6px;
+  height: 140px;
+  background: linear-gradient(to bottom, var(--tonearm-color), color-mix(in srgb, var(--tonearm-color) 70%, black));
+  border-radius: 3px;
+  transform-origin: 3px 0;
+  transform: rotate(-38deg);
+  transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  cursor: grab;
+}
+
+#tonearm.dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+#tonearm.active {
+  transform: rotate(20deg);
+}
+
+/* Lift-up animation: tonearm rises slightly before moving */
+#tonearm.lifting {
+  transition: transform 0.4s ease-out;
+  transform: rotate(5deg);
+}
+
+#tonearm-head {
+  position: absolute;
+  bottom: -4px;
+  left: -4px;
+  width: 14px;
+  height: 14px;
+  background: var(--tonearm-color);
+  border-radius: 2px;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Tonearm pivot point */
+#tonearm::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--tonearm-color);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Larger invisible hit area for easier grabbing */
+#tonearm::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -15px;
+  right: -15px;
+  bottom: -10px;
+  pointer-events: auto;
+}
+
+/* ===== Song info ===== */
+#song-info {
+  text-align: center;
+  min-height: 60px;
+}
+
+#song-title {
+  font-size: clamp(16px, 3vmin, 24px);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  transition: color 0.6s ease;
+}
+
+#song-artist {
+  font-size: clamp(12px, 2vmin, 16px);
+  color: var(--text-secondary);
+  letter-spacing: 0.3px;
+  transition: color 0.6s ease;
+}
+
+/* ===== Progress bar ===== */
+#progress-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(70vmin, 500px);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+#progress-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--progress-bg);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background 0.6s ease;
+}
+
+#progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--progress-fill);
+  border-radius: 2px;
+  transition: background 0.6s ease;
+}
+
+/* ===== Fullscreen toggle ===== */
+#fullscreen-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 70px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: none;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s ease, background 0.6s ease;
+}
+
+#lp-app:hover #fullscreen-toggle {
+  opacity: 1;
+}
+
+/* ===== Theme toggle ===== */
+#theme-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: none;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s ease, background 0.6s ease;
+}
+
+#lp-app:hover #theme-toggle {
+  opacity: 1;
+}
+
+#theme-panel {
+  position: fixed;
+  bottom: 70px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 100;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+#theme-panel.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+#theme-panel.hidden {
+  /* initial hidden state handled by .visible toggle */
+}
+
+#theme-panel button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  text-align: left;
+}
+
+#theme-panel button:hover {
+  background: var(--accent);
+  color: white;
+}
+
+#theme-panel button.active {
+  background: var(--accent);
+  color: white;
+}
+
+/* ===== Idle state — no music ===== */
+.idle #song-title::after {
+  content: 'Play music on YouTube Music';
+  color: var(--text-secondary);
+}

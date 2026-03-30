@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 280px;
+      padding: 20px;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+    }
+    h1 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      letter-spacing: 0.3px;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #222;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 12px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #555;
+      flex-shrink: 0;
+    }
+    .status-dot.active {
+      background: #4caf50;
+      box-shadow: 0 0 6px rgba(76, 175, 80, 0.5);
+    }
+    .status-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #ff6b35;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #e55a28; }
+    button:active { background: #cc4e20; }
+  </style>
+</head>
+<body>
+  <h1>LP Player</h1>
+  <p class="subtitle">for YouTube Music</p>
+
+  <div class="status">
+    <div id="status-dot" class="status-dot"></div>
+    <div id="status-text" class="status-text">Waiting for YouTube Music...</div>
+  </div>
+
+  <button id="open-btn">Open LP Player</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

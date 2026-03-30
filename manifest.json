@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "LP Player for YouTube Music",
+  "version": "1.0.0",
+  "description": "Transform YouTube Music into a beautiful LP record player visualization",
+  "permissions": ["storage"],
+  "host_permissions": ["*://music.youtube.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://music.youtube.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LP Player</title>
+  <link rel="stylesheet" href="themes.css">
+  <link rel="stylesheet" href="player.css">
+</head>
+<body>
+  <div id="lp-app" class="theme-dark">
+    <!-- Background layer (for ambient effects) -->
+    <div id="bg-layer"></div>
+
+    <!-- Main LP visualization -->
+    <div id="player-container">
+      <div id="turntable">
+        <!-- Tonearm -->
+        <div id="tonearm-container">
+          <div id="tonearm">
+            <div id="tonearm-head"></div>
+          </div>
+        </div>
+
+        <!-- Record disc -->
+        <div id="record-wrapper">
+          <div id="record">
+            <!-- Vinyl grooves (decorative rings) -->
+            <div class="groove groove-1"></div>
+            <div class="groove groove-2"></div>
+            <div class="groove groove-3"></div>
+            <div class="groove groove-4"></div>
+            <div class="groove groove-5"></div>
+
+            <!-- Center label with album art -->
+            <div id="record-label">
+              <img id="album-art" src="" alt="Album Art" crossorigin="anonymous">
+              <div id="center-hole"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Song info -->
+      <div id="song-info">
+        <div id="song-title"></div>
+        <div id="song-artist"></div>
+      </div>
+
+      <!-- Progress bar -->
+      <div id="progress-container">
+        <span id="time-current">0:00</span>
+        <div id="progress-bar">
+          <div id="progress-fill"></div>
+        </div>
+        <span id="time-duration">0:00</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <button id="fullscreen-toggle" title="Fullscreen">&#x26F6;</button>
+    <div id="theme-toggle" title="Change theme">&#9681;</div>
+    <div id="theme-panel" class="hidden">
+      <button data-theme="theme-dark" class="active">Dark</button>
+      <button data-theme="theme-warm">Warm</button>
+      <button data-theme="theme-cafe">Cafe</button>
+      <button data-theme="theme-minimal">Minimal</button>
+    </div>
+  </div>
+
+  <script src="player.js"></script>
+</body>
+</html>

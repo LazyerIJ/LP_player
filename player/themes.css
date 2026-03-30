@@ -1,0 +1,73 @@
+/*
+ * Theme System
+ * Each theme defines CSS custom properties.
+ * Add new themes by creating a new .theme-xxx class.
+ */
+
+/* ===== Dark (default) ===== */
+.theme-dark {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a1a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #888888;
+  --accent: #ff6b35;
+  --record-color: #111111;
+  --record-shine: rgba(255, 255, 255, 0.03);
+  --groove-color: rgba(255, 255, 255, 0.04);
+  --label-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+  --tonearm-color: #c0c0c0;
+  --progress-bg: #333333;
+  --progress-fill: var(--accent);
+  --ambient-opacity: 0.15;
+}
+
+/* ===== Warm ===== */
+.theme-warm {
+  --bg-primary: #1a1008;
+  --bg-secondary: #2a1c10;
+  --text-primary: #e8d5b5;
+  --text-secondary: #a08060;
+  --accent: #d4883e;
+  --record-color: #1a1410;
+  --record-shine: rgba(255, 200, 100, 0.03);
+  --groove-color: rgba(255, 200, 100, 0.05);
+  --label-shadow: 0 0 40px rgba(50, 30, 10, 0.8);
+  --tonearm-color: #b89970;
+  --progress-bg: #3a2a18;
+  --progress-fill: var(--accent);
+  --ambient-opacity: 0.2;
+}
+
+/* ===== Cafe ===== */
+.theme-cafe {
+  --bg-primary: #f5efe6;
+  --bg-secondary: #e8ddd0;
+  --text-primary: #3a2e22;
+  --text-secondary: #8a7a6a;
+  --accent: #c4713b;
+  --record-color: #222222;
+  --record-shine: rgba(255, 255, 255, 0.05);
+  --groove-color: rgba(255, 255, 255, 0.06);
+  --label-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+  --tonearm-color: #8a7a6a;
+  --progress-bg: #d5cabc;
+  --progress-fill: var(--accent);
+  --ambient-opacity: 0.1;
+}
+
+/* ===== Minimal ===== */
+.theme-minimal {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f8f8;
+  --text-primary: #111111;
+  --text-secondary: #999999;
+  --accent: #111111;
+  --record-color: #1a1a1a;
+  --record-shine: rgba(255, 255, 255, 0.04);
+  --groove-color: rgba(255, 255, 255, 0.05);
+  --label-shadow: 0 0 40px rgba(0, 0, 0, 0.15);
+  --tonearm-color: #666666;
+  --progress-bg: #e0e0e0;
+  --progress-fill: var(--accent);
+  --ambient-opacity: 0.05;
+}

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head><title>Icon Generator</title></head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// Generate LP record icons and download them
+function drawIcon(size) {
+  const c = document.getElementById('c');
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext('2d');
+  const cx = size / 2;
+  const r = size * 0.45;
+
+  // Background
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0, 0, size, size);
+
+  // Record
+  ctx.beginPath();
+  ctx.arc(cx, cx, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#222';
+  ctx.fill();
+
+  // Grooves
+  for (let i = 1; i <= 3; i++) {
+    ctx.beginPath();
+    ctx.arc(cx, cx, r * (1 - i * 0.15), 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  // Label
+  ctx.beginPath();
+  ctx.arc(cx, cx, r * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = '#ff6b35';
+  ctx.fill();
+
+  // Center hole
+  ctx.beginPath();
+  ctx.arc(cx, cx, r * 0.06, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fill();
+
+  return c.toDataURL('image/png');
+}
+
+[16, 48, 128].forEach(size => {
+  const a = document.createElement('a');
+  a.href = drawIcon(size);
+  a.download = `icon${size}.png`;
+  a.textContent = `Download ${size}x${size}`;
+  a.style.display = 'block';
+  a.style.margin = '10px';
+  document.body.appendChild(a);
+});
+</script>
+</body>
+</html>
