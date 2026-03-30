@@ -41,7 +41,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   // Forward commands from player page to YouTube Music content script
-  if (msg.type === 'TOGGLE_PLAYBACK' || msg.type === 'PLAY_TRACK') {
+  if (msg.type === 'TOGGLE_PLAYBACK' || msg.type === 'PLAY_TRACK' || msg.type === 'NEXT_TRACK' || msg.type === 'PREV_TRACK') {
     chrome.tabs.query({ url: '*://music.youtube.com/*' }, (tabs) => {
       for (const tab of tabs) {
         chrome.tabs.sendMessage(tab.id, msg);

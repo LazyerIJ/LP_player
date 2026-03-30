@@ -17,6 +17,9 @@
     timeInfo: '.time-info',
     // Queue/playlist selectors
     queueItems: 'ytmusic-player-queue-item',
+    // Navigation buttons
+    nextButton: '.next-button',
+    previousButton: '.previous-button',
   };
 
   let lastState = {};
@@ -247,6 +250,16 @@
           target.click();
         }
       }
+    }
+
+    if (msg.type === 'NEXT_TRACK') {
+      const el = document.querySelector(SELECTORS.nextButton);
+      if (el) (el.querySelector('button') || el).click();
+    }
+
+    if (msg.type === 'PREV_TRACK') {
+      const el = document.querySelector(SELECTORS.previousButton);
+      if (el) (el.querySelector('button') || el).click();
     }
 
     // Reverse control: toggle play/pause from LP player

@@ -7,13 +7,17 @@
   'use strict';
 
   // DOM references
+  const currentSlot = document.getElementById('record-wrapper');
+  const incomingSlot = document.getElementById('record-incoming');
+  const recordTray = document.getElementById('record-tray');
+
   const els = {
     app: document.getElementById('lp-app'),
     bgLayer: document.getElementById('bg-layer'),
-    record: document.getElementById('record'),
+    record: currentSlot.querySelector('.record-disc'),
     tonearm: document.getElementById('tonearm'),
     tonearmContainer: document.getElementById('tonearm-container'),
-    albumArt: document.getElementById('album-art'),
+    albumArt: currentSlot.querySelector('.album-art'),
     songTitle: document.getElementById('song-title'),
     songArtist: document.getElementById('song-artist'),
     timeCurrent: document.getElementById('time-current'),
@@ -24,6 +28,8 @@
     tracklistToggle: document.getElementById('tracklist-toggle'),
     tracklistPanel: document.getElementById('tracklist-panel'),
     tracklistItems: document.getElementById('tracklist-items'),
+    navPrev: document.getElementById('nav-prev'),
+    navNext: document.getElementById('nav-next'),
   };
 
   // Tonearm angle constants (must match CSS)
@@ -157,9 +163,25 @@
       setProgress(0, 0);
     }
 
-    // Album art
+    // Album art change
     if (state.albumArtUrl && state.albumArtUrl !== currentState.albumArtUrl) {
-      els.albumArt.src = state.albumArtUrl;
+      if (songChanged && !isSwapping) {
+        // Use pending direction from button click, or default to 'next' for natural transitions
+        const direction = pendingSwapDirection || 'next';
+        pendingSwapDirection = null;
+        clearTimeout(pendingSwapTimeout);
+        updateAmbientColor(state.albumArtUrl);
+        setProgress(state.currentTime, state.duration);
+        currentState = { ...state };
+        syncTonearmVisualState();
+        runSwapAnimation(direction, state.albumArtUrl);
+        return;
+      }
+
+      // Normal album art update (no swap in progress)
+      if (!isSwapping) {
+        els.albumArt.src = state.albumArtUrl;
+      }
       updateAmbientColor(state.albumArtUrl);
     }
 
@@ -176,7 +198,9 @@
     }
 
     currentState = { ...state };
-    syncRecordVisualState();
+    if (!isSwapping) {
+      syncRecordVisualState();
+    }
     syncTonearmVisualState();
   }
 
@@ -233,7 +257,9 @@
   }
 
   function syncRecordVisualState() {
-    els.record.classList.toggle('playing', isRecordVisuallyPlaying());
+    const playing = isRecordVisuallyPlaying();
+    els.record.classList.toggle('playing', playing);
+    incomingSlot.querySelector('.record-disc').classList.toggle('playing', playing);
   }
 
   function syncTonearmVisualState() {
@@ -585,6 +611,87 @@
       // Not running as extension — ignore
     }
   }
+
+  // ===== Record swap animation =====
+  let isSwapping = false;
+  let pendingSwapDirection = null; // 'next' | 'prev' | null
+  let pendingSwapTimeout = null;
+
+  function requestTrackChange(direction) {
+    if (isSwapping || pendingSwapDirection) return;
+    pendingSwapDirection = direction;
+    sendPlaybackCommand(direction === 'next' ? 'NEXT_TRACK' : 'PREV_TRACK');
+
+    // Clear pending if no song change detected within 3s
+    clearTimeout(pendingSwapTimeout);
+    pendingSwapTimeout = setTimeout(() => {
+      pendingSwapDirection = null;
+    }, 3000);
+  }
+
+  function preloadImage(url) {
+    return new Promise((resolve) => {
+      if (!url) { resolve(); return; }
+      const img = new Image();
+      img.onload = resolve;
+      img.onerror = resolve;
+      img.src = url;
+    });
+  }
+
+  function runSwapAnimation(direction, newAlbumArtUrl) {
+    isSwapping = true;
+
+    const incomingArt = incomingSlot.querySelector('.album-art');
+
+    // Preload image, then animate
+    preloadImage(newAlbumArtUrl).then(() => {
+      if (newAlbumArtUrl) {
+        incomingArt.src = newAlbumArtUrl;
+      }
+
+      // Incoming record should spin
+      incomingSlot.querySelector('.record-disc').classList.add('playing');
+
+      // Position incoming record on the correct side
+      incomingSlot.style.left = direction === 'next' ? '100%' : '-100%';
+
+      // Reset tray to origin (no transition)
+      recordTray.classList.add('no-transition');
+      recordTray.style.transform = 'translateX(0)';
+      recordTray.offsetHeight;
+
+      // Animate tray to slide both records together
+      recordTray.classList.remove('no-transition');
+      recordTray.style.transform = direction === 'next' ? 'translateX(-100%)' : 'translateX(100%)';
+
+      function onSwapDone(e) {
+        if (e && e.target !== recordTray) return;
+        recordTray.removeEventListener('transitionend', onSwapDone);
+
+        // Copy incoming art to current slot
+        els.albumArt.src = incomingArt.src || '';
+
+        // Reset tray instantly
+        recordTray.classList.add('no-transition');
+        recordTray.style.transform = 'translateX(0)';
+        recordTray.offsetHeight;
+        recordTray.classList.remove('no-transition');
+
+        // Reset incoming position
+        incomingSlot.style.left = '100%';
+
+        syncRecordVisualState();
+        isSwapping = false;
+      }
+
+      recordTray.addEventListener('transitionend', onSwapDone);
+      setTimeout(() => { if (isSwapping) onSwapDone(null); }, 800);
+    });
+  }
+
+  els.navPrev.addEventListener('click', () => requestTrackChange('prev'));
+  els.navNext.addEventListener('click', () => requestTrackChange('next'));
 
   // ===== Connection to Background =====
   let port = null;

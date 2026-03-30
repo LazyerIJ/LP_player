@@ -14,34 +14,61 @@
 
     <!-- Main LP visualization -->
     <div id="player-container">
-      <div id="turntable">
-        <!-- Tonearm -->
-        <div id="tonearm-container">
-          <div id="tonearm">
-            <div id="tonearm-head"></div>
+      <div id="turntable-area">
+        <button id="nav-prev" class="nav-btn" title="Previous track">&#x2039;</button>
+
+        <div id="turntable">
+          <!-- Tonearm -->
+          <div id="tonearm-container">
+            <div id="tonearm">
+              <div id="tonearm-head"></div>
+            </div>
           </div>
-        </div>
 
-        <!-- Record disc -->
-        <div id="record-wrapper">
-          <div id="record-shadow"></div>
-          <div id="record">
-            <div id="record-surface">
-              <!-- Vinyl grooves (decorative rings) -->
-              <div class="groove groove-1"></div>
-              <div class="groove groove-2"></div>
-              <div class="groove groove-3"></div>
-              <div class="groove groove-4"></div>
-              <div class="groove groove-5"></div>
+          <!-- Record stage (circular clip for slide animation) -->
+          <div id="record-stage">
+            <!-- Tray: holds two records side by side, slides as one unit -->
+            <div id="record-tray">
+              <!-- Current record (left slot) -->
+              <div id="record-wrapper" class="record-slot">
+                <div class="record-shadow"></div>
+                <div class="record-disc">
+                  <div class="record-surface">
+                    <div class="groove groove-1"></div>
+                    <div class="groove groove-2"></div>
+                    <div class="groove groove-3"></div>
+                    <div class="groove groove-4"></div>
+                    <div class="groove groove-5"></div>
+                    <div class="record-label">
+                      <img class="album-art" src="" alt="Album Art" crossorigin="anonymous">
+                      <div class="center-hole"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-              <!-- Center label with album art -->
-              <div id="record-label">
-                <img id="album-art" src="" alt="Album Art" crossorigin="anonymous">
-                <div id="center-hole"></div>
+              <!-- Incoming record (right slot) -->
+              <div id="record-incoming" class="record-slot">
+                <div class="record-shadow"></div>
+                <div class="record-disc">
+                  <div class="record-surface">
+                    <div class="groove groove-1"></div>
+                    <div class="groove groove-2"></div>
+                    <div class="groove groove-3"></div>
+                    <div class="groove groove-4"></div>
+                    <div class="groove groove-5"></div>
+                    <div class="record-label">
+                      <img class="album-art" src="" alt="Album Art" crossorigin="anonymous">
+                      <div class="center-hole"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        <button id="nav-next" class="nav-btn" title="Next track">&#x203A;</button>
       </div>
 
       <!-- Song info -->
