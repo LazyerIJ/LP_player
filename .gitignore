@@ -2,3 +2,4 @@ dom-debug/
 screenshots/
 .DS_Store
 *.zip
+!releases/*.zip
