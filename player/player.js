@@ -56,9 +56,11 @@
       els.record.classList.add('playing');
       els.tonearm.classList.add('active');
       els.app.classList.remove('idle');
+      requestWakeLock();
     } else {
       els.record.classList.remove('playing');
       els.tonearm.classList.remove('active');
+      releaseWakeLock();
     }
 
     // Song info
@@ -343,6 +345,34 @@
   document.addEventListener('dblclick', (e) => {
     if (els.tonearm.contains(e.target)) return;
     toggleFullscreen();
+  });
+
+  // ===== Wake Lock (prevent screen sleep during playback) =====
+  let wakeLock = null;
+
+  async function requestWakeLock() {
+    try {
+      if (!wakeLock && document.visibilityState === 'visible') {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      }
+    } catch {
+      // Wake Lock API not supported or failed
+    }
+  }
+
+  function releaseWakeLock() {
+    if (wakeLock) {
+      wakeLock.release();
+      wakeLock = null;
+    }
+  }
+
+  // Re-acquire wake lock when tab becomes visible again
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && currentState.isPlaying) {
+      requestWakeLock();
+    }
   });
 
   // ===== Init =====
