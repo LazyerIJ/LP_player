@@ -114,12 +114,14 @@
     const items = document.querySelectorAll(SELECTORS.queueItems);
     const tracks = [];
     items.forEach((item, i) => {
+      // Skip hidden/collapsed queue items (e.g. music video duplicates)
+      if (item.offsetHeight === 0) return;
+
       const title = item.querySelector('.song-title, yt-formatted-string.title, .title')?.textContent?.trim() || '';
       const artist = item.querySelector('.byline, .secondary-flex-columns yt-formatted-string')?.textContent?.trim() || '';
       const duration = item.querySelector('.duration, .fixed-columns yt-formatted-string')?.textContent?.trim() || '';
       const isPlaying = item.getAttribute('play-button-state') === 'playing';
 
-      // Thumbnail: yt-img-shadow contains the actual img
       let thumbnail = '';
       const imgShadow = item.querySelector('yt-img-shadow');
       if (imgShadow) {
