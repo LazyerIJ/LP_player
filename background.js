@@ -40,13 +40,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     });
   }
 
-  // Forward playback commands from player page to YouTube Music content script
-  if (msg.type === 'TOGGLE_PLAYBACK') {
+  // Forward commands from player page to YouTube Music content script
+  if (msg.type === 'TOGGLE_PLAYBACK' || msg.type === 'PLAY_TRACK') {
     chrome.tabs.query({ url: '*://music.youtube.com/*' }, (tabs) => {
       for (const tab of tabs) {
-        chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_PLAYBACK' });
+        chrome.tabs.sendMessage(tab.id, msg);
       }
     });
+  }
+
+  // Forward query commands and return response
+  if (msg.type === 'GET_QUEUE' || msg.type === 'INSPECT_QUEUE_DOM') {
+    chrome.tabs.query({ url: '*://music.youtube.com/*' }, (tabs) => {
+      if (tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, msg, (response) => {
+          sendResponse(response);
+        });
+      } else {
+        sendResponse(null);
+      }
+    });
+    return true; // async sendResponse
   }
 });
 

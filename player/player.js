@@ -21,6 +21,9 @@
     progressFill: document.getElementById('progress-fill'),
     themeToggle: document.getElementById('theme-toggle'),
     themePanel: document.getElementById('theme-panel'),
+    tracklistToggle: document.getElementById('tracklist-toggle'),
+    tracklistPanel: document.getElementById('tracklist-panel'),
+    tracklistItems: document.getElementById('tracklist-items'),
   };
 
   // Tonearm angle constants (must match CSS)
@@ -111,7 +114,6 @@
 
   // ===== Theme System =====
   function initTheme() {
-    // Load saved theme
     const saved = localStorage.getItem('lp-theme') || 'theme-dark';
     setTheme(saved);
 
@@ -126,7 +128,6 @@
       });
     });
 
-    // Close panel on outside click
     document.addEventListener('click', (e) => {
       if (!els.themeToggle.contains(e.target) && !els.themePanel.contains(e.target)) {
         els.themePanel.classList.remove('visible');
@@ -135,14 +136,92 @@
   }
 
   function setTheme(themeClass) {
-    // Remove all theme classes
     els.app.className = themeClass;
     localStorage.setItem('lp-theme', themeClass);
 
-    // Update active button
     els.themePanel.querySelectorAll('button').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.theme === themeClass);
     });
+  }
+
+  // ===== Tracklist =====
+  let tracklistOpen = false;
+  let queuePollInterval = null;
+
+  els.tracklistToggle.addEventListener('click', () => {
+    tracklistOpen = !tracklistOpen;
+    els.tracklistPanel.classList.toggle('visible', tracklistOpen);
+
+    if (tracklistOpen) {
+      fetchQueue();
+      // Poll queue while panel is open
+      queuePollInterval = setInterval(fetchQueue, 3000);
+    } else {
+      clearInterval(queuePollInterval);
+      queuePollInterval = null;
+    }
+  });
+
+  // Close tracklist on outside click
+  document.addEventListener('click', (e) => {
+    if (tracklistOpen &&
+        !els.tracklistPanel.contains(e.target) &&
+        !els.tracklistToggle.contains(e.target)) {
+      tracklistOpen = false;
+      els.tracklistPanel.classList.remove('visible');
+      clearInterval(queuePollInterval);
+      queuePollInterval = null;
+    }
+  });
+
+  function fetchQueue() {
+    chrome.runtime.sendMessage({ type: 'GET_QUEUE' }, (tracks) => {
+      if (!tracks) return;
+      renderTracklist(tracks);
+    });
+  }
+
+  function renderTracklist(tracks) {
+    const container = els.tracklistItems;
+    // Preserve scroll position
+    const scrollTop = container.scrollTop;
+
+    container.innerHTML = '';
+
+    tracks.forEach((track) => {
+      const item = document.createElement('div');
+      item.className = 'track-item' + (track.isPlaying ? ' active' : '');
+
+      item.innerHTML =
+        `<span class="track-index">${track.index + 1}</span>` +
+        `<div class="track-info">` +
+          `<div class="track-title">${escapeHtml(track.title)}</div>` +
+          `<div class="track-artist">${escapeHtml(track.artist)}</div>` +
+        `</div>` +
+        `<span class="track-duration">${escapeHtml(track.duration)}</span>`;
+
+      item.addEventListener('click', () => {
+        chrome.runtime.sendMessage({ type: 'PLAY_TRACK', index: track.index });
+      });
+
+      container.appendChild(item);
+    });
+
+    container.scrollTop = scrollTop;
+
+    // Auto-scroll to active track on first render
+    if (scrollTop === 0) {
+      const activeItem = container.querySelector('.track-item.active');
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
 
   // ===== Tonearm Drag Control =====
@@ -153,7 +232,6 @@
   function getTonearmAngle() {
     const transform = getComputedStyle(els.tonearm).transform;
     if (transform === 'none') return TONEARM_REST;
-    // Parse rotation from matrix
     const values = transform.match(/matrix\((.+)\)/);
     if (values) {
       const parts = values[1].split(', ');
@@ -165,7 +243,6 @@
   }
 
   function setTonearmAngle(angle) {
-    // Clamp between rest (-38) and play (20) positions
     angle = Math.max(TONEARM_REST, Math.min(TONEARM_PLAY, angle));
     els.tonearm.style.transform = `rotate(${angle}deg)`;
     return angle;
@@ -177,7 +254,6 @@
     dragStartY = e.clientY || e.touches?.[0]?.clientY || 0;
     dragStartAngle = getTonearmAngle();
     els.tonearm.classList.add('dragging');
-    // Remove active class so CSS transition doesn't fight drag
     els.tonearm.classList.remove('active');
   }
 
@@ -185,7 +261,6 @@
     if (!isDragging) return;
     e.preventDefault();
     const clientY = e.clientY || e.touches?.[0]?.clientY || 0;
-    // Moving down = toward record (increase angle), up = away (decrease angle)
     const deltaY = clientY - dragStartY;
     const sensitivity = 0.15;
     const newAngle = dragStartAngle + deltaY * sensitivity;
@@ -198,37 +273,31 @@
     els.tonearm.classList.remove('dragging');
 
     const finalAngle = getTonearmAngle();
-    els.tonearm.style.transform = ''; // Clear inline style, let CSS class take over
+    els.tonearm.style.transform = '';
 
-    // Restore active class if currently playing (in case drag interrupted it)
     if (currentState.isPlaying) {
       els.tonearm.classList.add('active');
     }
 
     if (finalAngle > TONEARM_THRESHOLD) {
-      // Dragged onto record (toward positive angle) → play
       if (!currentState.isPlaying) {
         sendPlaybackCommand('TOGGLE_PLAYBACK');
       }
     } else {
-      // Dragged off record (toward negative angle) → pause
       if (currentState.isPlaying) {
         sendPlaybackCommand('TOGGLE_PLAYBACK');
       }
     }
   }
 
-  // Mouse events
   els.tonearm.addEventListener('mousedown', onDragStart);
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup', onDragEnd);
 
-  // Touch events
   els.tonearm.addEventListener('touchstart', onDragStart, { passive: false });
   document.addEventListener('touchmove', onDragMove, { passive: false });
   document.addEventListener('touchend', onDragEnd);
 
-  // Click on tonearm = quick toggle
   els.tonearm.addEventListener('click', (e) => {
     if (isDragging) return;
     sendPlaybackCommand('TOGGLE_PLAYBACK');
@@ -279,7 +348,5 @@
   // ===== Init =====
   initTheme();
   connect();
-
-  // Set idle state initially
   els.app.classList.add('idle');
 })();

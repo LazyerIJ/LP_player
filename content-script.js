@@ -1,6 +1,6 @@
 /**
  * Content Script for YouTube Music
- * Extracts playback state, song info, and album art from the YouTube Music DOM.
+ * Extracts playback state, song info, album art, and queue from the YouTube Music DOM.
  */
 (() => {
   'use strict';
@@ -15,10 +15,36 @@
     video: 'video',
     progressBar: '#progress-bar',
     timeInfo: '.time-info',
+    // Queue/playlist selectors
+    queueItems: 'ytmusic-player-queue-item',
   };
 
   let lastState = {};
   let pollInterval = null;
+
+  function getQueueTracks() {
+    const items = document.querySelectorAll(SELECTORS.queueItems);
+    const tracks = [];
+    items.forEach((item, i) => {
+      const title = item.querySelector('.song-title, yt-formatted-string.title, .title')?.textContent?.trim() || '';
+      const artist = item.querySelector('.byline, .secondary-flex-columns yt-formatted-string')?.textContent?.trim() || '';
+      const duration = item.querySelector('.duration, .fixed-columns yt-formatted-string')?.textContent?.trim() || '';
+      const isPlaying = item.getAttribute('play-button-state') === 'playing';
+
+      // Thumbnail: yt-img-shadow contains the actual img
+      let thumbnail = '';
+      const imgShadow = item.querySelector('yt-img-shadow');
+      if (imgShadow) {
+        const img = imgShadow.querySelector('img');
+        if (img && img.src && !img.src.startsWith('data:')) {
+          thumbnail = img.src.replace(/=w\d+-h\d+/, '=w120-h120');
+        }
+      }
+
+      tracks.push({ index: i, title, artist, thumbnail, duration, isPlaying });
+    });
+    return tracks;
+  }
 
   function getPlaybackState() {
     const video = document.querySelector(SELECTORS.video);
@@ -32,7 +58,6 @@
     if (video) {
       isPlaying = !video.paused;
     } else if (playButton) {
-      // Fallback: check button aria-label or title
       const label = playButton.getAttribute('aria-label') || playButton.getAttribute('title') || '';
       isPlaying = label.toLowerCase().includes('pause');
     }
@@ -40,7 +65,6 @@
     // Get album art URL (request highest resolution)
     let albumArtUrl = '';
     if (albumArtEl && albumArtEl.src) {
-      // YouTube Music uses w60-h60 etc. Replace to get high res
       albumArtUrl = albumArtEl.src.replace(/=w\d+-h\d+/, '=w544-h544');
     }
 
@@ -94,7 +118,6 @@
   function start() {
     if (pollInterval) return;
     pollInterval = setInterval(poll, 1000);
-    // Send initial state immediately
     poll();
   }
 
@@ -102,6 +125,26 @@
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'GET_STATE') {
       sendResponse(getPlaybackState());
+    }
+
+    if (msg.type === 'GET_QUEUE') {
+      sendResponse(getQueueTracks());
+      return true;
+    }
+
+    // Play specific track in queue by clicking it
+    if (msg.type === 'PLAY_TRACK') {
+      const items = document.querySelectorAll(SELECTORS.queueItems);
+      const target = items[msg.index];
+      if (target) {
+        // Click the thumbnail/play overlay area to trigger playback
+        const playBtn = target.querySelector('ytmusic-play-button-renderer');
+        if (playBtn) {
+          playBtn.click();
+        } else {
+          target.click();
+        }
+      }
     }
 
     // Reverse control: toggle play/pause from LP player
@@ -114,7 +157,6 @@
           video.pause();
         }
       } else {
-        // Fallback: click the play/pause button
         const btn = document.querySelector(SELECTORS.playButton);
         if (btn) btn.click();
       }
@@ -145,7 +187,6 @@
     }
   });
 
-  // Check if already present
   if (document.querySelector(SELECTORS.playerBar)) {
     attachVideoListeners();
     start();
