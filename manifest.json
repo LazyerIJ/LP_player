@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LP Player for YouTube Music",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Transform YouTube Music into a beautiful LP record player visualization",
   "permissions": ["storage"],
   "host_permissions": ["*://music.youtube.com/*"],
