@@ -119,6 +119,12 @@ Features:
 - 4 themes: Dark, Warm, Cafe, Minimal
 - Fullscreen support
 - Screen stays on during playback
+
+What's new in v1.1.1:
+- Previous/Next track buttons with vinyl record swap animation
+- Tonearm follows playback progress from outer edge to inner groove
+- Fixed duplicate tracks in tracklist
+- LP Player resets to idle when YouTube Music is closed
 ```
 
 ## Next Release (v1.2.0 예정)
